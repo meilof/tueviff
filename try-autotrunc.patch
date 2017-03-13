@@ -1,0 +1,114 @@
+Index: apps/sqrt.py
+===================================================================
+--- apps/sqrt.py	(revision 784)
++++ apps/sqrt.py	(working copy)
+@@ -49,8 +49,8 @@
+     b_list = [d_list[-i]-d_list[-i-1] for i in xrange(1,len(bits))]+[d_list[0]]
+     vs=sum([b_list[i]*(1<<(runtime.options.res-1-i)) for i in xrange(bitlen)])
+     v1=tofp(runtime, runtime.bin_comb(b_list[0::2])*(1<<runtime.options.res))
+-    v1p=v1*sqrt2(Zp, runtime.options.res)
+-    v1q=runtime.truncPR(v1p, runtime.options.res, True)
++    v1q=v1*sqrt2(Zp, runtime.options.res)
++    #v1q=runtime.truncPR(v1p, runtime.options.res, True)
+     v2=tofp(runtime, runtime.bin_comb(b_list[1::2])*(1<<(runtime.options.res+1)))
+     viff.inlinecb.returnValue([vs,v1q+v2])
+ 
+@@ -66,7 +66,7 @@
+     al = fpval(runtime, Zp, -0.8099868542)
+     be = fpval(runtime, Zp, 1.787727479)
+     y0=w*al+be
+-    y0=runtime.truncPR(y0, runtime.options.res, True)
++    #y0=runtime.truncPR(y0, runtime.options.res, True)
+ 
+     g=y0*w
+     h=y0/2
+@@ -91,11 +91,11 @@
+     h=h*r
+ 
+     # newton iteration
+-    ho=runtime.truncPR(oh*(2*h*(3-4*w*h*h)), runtime.options.res, True)
++    ho=oh*(2*h*(3-4*w*h*h))
+     g=ho*w
+     
+     #res=self.runtime.truncPR((g*fac-2**(self.r-powtwo/2-1)).clone_nofp(), (self.r-powtwo/2)) # TODO: rounding?
+-    res=runtime.truncPR((g*fac).clone_nofp(), (runtime.options.res-powtwo/2))-1 # TODO: rounding?
++    res=runtime.truncPR(g.clone_nofp()*fac.clone_nofp(), (runtime.options.res-powtwo/2))-1 # TODO: rounding?
+     
+     return res
+    
+@@ -150,30 +150,30 @@
+     
+     Zp = GF(find_prime(2**(l + 1) + 2**(4*l + k  + 1), blum=True), runtime.res) 
+     
+-    #theval = 24897124897189312897
+-    #val = runtime.shamir_share([1], Zp, theval if runtime.id==1 else None)
+-    #sq = yield runtime.open(sqrt(runtime, val, 96, 0))
+-    #print "sq=", sq
++    theval = 24897124897189312897
++    val = runtime.shamir_share([1], Zp, theval if runtime.id==1 else None)
++    sq = yield runtime.open(sqrt(runtime, val, 96, 0))
++    print "sq=", sq
+     
+-    theval = 0.5
+-    val = runtime.shamir_share([1], Zp, theval if runtime.id==1 else None).clone_fp()   # TODO: otherwise, how do other parties know if it is FP or not?
+-    op = yield runtime.open(ln(runtime, val, 10))
+-    print "op=", runtime.get_value(op)
++    #theval = 0.5
++    #val = runtime.shamir_share([1], Zp, theval if runtime.id==1 else None).clone_fp()   # TODO: otherwise, how do other parties know if it is FP or not?
++    #op = yield runtime.open(ln(runtime, val, 10))
++    #print "op=", runtime.get_value(op)
++    # 
++    #for i in xrange(100):
++    #    #rnd = unirandom(runtime, Zp)        
++    #    #op = yield runtime.open(rnd)
++    #    #print runtime.get_value(op)
++    #    
++    #    rnd = laplace(runtime, Zp)        
++    #    op = yield runtime.open(rnd)
++    #    print runtime.get_value(op)
++    #    
++    #    #op = yield runtime.open(ln(runtime, rnd, 10))
++    #    #print "  log=", runtime.get_value(op)
+     
+-    for i in xrange(100):
+-        #rnd = unirandom(runtime, Zp)        
+-        #op = yield runtime.open(rnd)
+-        #print runtime.get_value(op)
+-        
+-        rnd = laplace(runtime, Zp)        
+-        op = yield runtime.open(rnd)
+-        print runtime.get_value(op)
+-        
+-        #op = yield runtime.open(ln(runtime, rnd, 10))
+-        #print "  log=", runtime.get_value(op)
+     
+     
+-    
+     runtime.shutdown()
+ 
+ class Protocol:
+Index: viff/passiveFP.py
+===================================================================
+--- viff/passiveFP.py	(revision 780)
++++ viff/passiveFP.py	(working copy)
+@@ -180,7 +180,7 @@
+         c = self.open(c)
+         self.schedule_callback(c, finish)
+ 
+-        result = (share - c + r_modf)*~field(2**f, fp)*field(1, fp)
++        result = (share - c + r_modf)*~field(2**f)*field(1)
+         if fp:
+             result = self.clone_share_fp(result)
+         return result
+@@ -346,6 +346,11 @@
+             # to avoid changing it.
+             result = share_a.clone()
+             result.addCallback(lambda a: share_b * a)
++            
++            if isinstance(share_b, FieldElement) and share_b.fp:
++                print "truncating by", share_b.r
++                result = self.truncPR(result, share_b.r, True)
++            
+             return result
+         elif share_a.fp and share_b.fp:
+             trunc = True

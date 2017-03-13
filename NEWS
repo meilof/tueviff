@@ -1,0 +1,337 @@
+
+NEWS file for VIFF
+==================
+
+This file summarizes the changes between each release. Many more
+details can be found in the commit messages:
+
+  http://hg.viff.dk/viff/log/
+
+The issue numbers referenced below refer to the online issue tracker,
+please refer to it for details on the issues:
+
+  http://tracker.viff.dk/
+
+Version 1.0, released on 2009-12-14
+-----------------------------------
+
+We are happy to declare that we have reached VIFF version 1.0. The
+current code is useful, flexible and unlikely to change radically. The
+largest changes since 0.7.1 are summarized below.
+
+The central class named Runtime was renamed to PassiveRuntime. All
+runtime classes now uses the common method names input and output for
+providing data to and retrieving data from the computation. A
+multiparty version of AES was added: it allows parties to encrypt a
+Shamir secret shared message under a secret shared AES key to obtain a
+secret shared ciphertext.
+
+* Moved the crypto-related code from the viff.runtime.Runtime class to
+  a new class called viff.passive.PassiveRuntime. This is a backwards
+  incompatible change. Please update your import statements to import
+  PassiveRuntime instead of Runtime.
+
+* Introduced input method in PassiveRuntime and PaillierRuntime. This
+  method should be used instead of shamir_share and share unless there
+  is a particular reason to select a secret sharing strategy.
+
+* Introduced output method in Runtime classes. This method should be
+  used instead of the open method, which will go away in a future
+  release.
+
+* Renamed random seed environment variable from SEED to VIFF_SEED.
+
+* Made viff.prss.PRF produce consistent output on both 32-bit and
+  64-bit systems.
+
+* Exponentiation of shares by square-and-multiply for public
+  exponents. This means that if x is a Share, x**7 now works.
+
+* Added multiparty AES encryption. A highly optimized version of AES
+  has been added to viff.aes. It allows multiparty encryption of a
+  secret shared message using a secret shared AES key.
+
+* Introduced our own Twisted reactor. This increases throughput by
+  sending data sooner, rather than later.
+
+* Added new full-threshold actively secure runtime in viff.orlandi. It
+  currently relies on a third-party proprietary library for computing
+  commitments over elliptic curves, so it cannot be use with a plain
+  VIFF installation.
+
+* Issue 4: Replace the marshal module. The marshal module is not safe
+  to use for malicious data, so we now use the struct module to parse
+  a fixed length format instead.
+
+* Issue 62: Proper error message when no SSL certificate present.
+
+* Issue 75: Test without local computations. The new FakeFieldElement
+  class has the interface of a FieldElement but does no computations.
+  A new --fake flag for benchmark.py enables these elements.
+
+
+
+Version 0.7.1, released on 2008-10-09
+-------------------------------------
+
+A major bug was fixed in the passive multiplication protocol in the
+case where 2t + 1 != n. Unit tests were updated for Python 2.6.
+
+* Players would do inconsistent recombination of shares in the passive
+  multiplication protocol (Runtime.mul). This resulted in wrong
+  answers being computed when 2t + 1 != n.
+
+* Fixed unit tests on Python 2.6. The Bracha broadcast let the players
+  send data to themselves by mistake, and for some reason this was not
+  detected in earlier Python versions.
+
+* Profiling information (from a run with --profile) is dumped in
+  player-X.pstats and player-X.prof files for later analysis.
+
+* Issue 57: Get rid of Runtime._shamir_share. The method was folded
+  into Runtime.mul.
+
+* Issue 69: The installation was simplified by including the ConfigObj
+  library in the VIFF source. A system-wide installation of ConfigObj
+  (if any) will be ignored.
+
+
+Version 0.7, released on 2008-09-21
+-----------------------------------
+
+PyOpenSSL is now used instead of GnuTLS and this enables secure
+connections on Windows. The code dealing with starting a player has
+been made much more robust and players can now be started in any
+order. Players can now also be reliably shutdown. A new runtime based
+on homomorphic Paillier encryption supports just two players. Added a
+new protocol for equality testing with secret shared result.
+
+* Moved ActiveRuntime and related code to its own module, viff.active.
+  This is an incompatible change compared to VIFF 0.6 and you must
+  update your code by changing
+
+    from viff.runtime import ActiveRuntime
+
+  to
+
+    from viff.active import ActiveRuntime
+
+* Created mixin classes for different preprocessing choices for
+  actively secure multiplication protocol.
+
+* Added a runtime based on the homomorphic Paillier encryption scheme
+  which supports twoparty computations. It is found in the new
+  viff.paillier module.
+
+* A new probabilistic protocol for equality testing with secret shared
+  resultwas added in the viff.equality module.
+
+* Issue 6: More robust handling of port allocation. We now keep
+  retrying until we succeed in binding to the listening port.
+
+* Issue 8: Allow players to be started in any order. Instead of
+  crashing, players now retry if the initial connection fails.
+
+* Issue 20: Find a python-gnutls replacement. We now use PyOpenSSL.
+
+* Issue 35: Handle error if TLS is requested but python-gnutls is
+  missing. The ImportError is now passed through to the caller.
+
+* Issue 37: Players hang while shutting down. The shutdown procedure
+  now correctly waits until all connections are closed before it stops
+  the reactor.
+
+* Issue 59: Profiling support. Give a --profile command line argument
+  to make your VIFF programs output profiling info when stopped.
+
+
+Version 0.6, released on 2008-05-28
+-----------------------------------
+
+The average time for a secure comparison was reduced by 60-70%.
+Comparisons now work with an actively secure multiplication protocol.
+A memory leak was fixed. Converted documentation to new Sphinx format.
+
+* A new prss_lsb function in viff.prss efficiently produces a share of
+  a random field element together with a GF256 share of its least
+  significant bit. This made comparisons 3-4 times faster.
+
+* New default flavors has been added to viff.comparison which uses the
+  actively secure multiplication protocol. Actively secure comparisons
+  take about twice as long as passive secure comparisons.
+
+* When data was sent and received empty deque objects were left behind
+  in the ShareExchanger.incoming_data dictionaries. That caused a
+  memory leak which is now fixed. An example application, gc-test.py,
+  was added to test this and similar problems.
+
+* The documentation is now generated using Sphinx and aims to be more
+  like a manual than purely an API documentation. The extended section
+  on program counters is an example of this.
+
+* Fixed a bug that made 'GF256(1) != GF256(1)' return 'True'.
+
+* Calling '~GF256(255)' would throw a KeyError, fixed.
+
+* Issue 19: Make Runtime.convert_bit_share actively secure.
+
+
+Version 0.5, released on 2008-04-28
+-----------------------------------
+
+If python-gnutls is unavailable, players now automatically fallback to
+TCP connections. The installation guide was updated for Windows Vista.
+Fixed minor typos in documentation.
+
+Details:
+
+* Automatic fallback to TCP if python-gnutls is unavailable. It was
+  previously necessary to specify the --no-tls flag when running the
+  example applications under Windows since python-gnutls is
+  unavailable there. This is now detected automatically at runtime.
+
+
+Version 0.5rc1, released on 2008-04-23
+--------------------------------------
+
+Added preliminary support for preprocessing and an efficient
+multiplication protocol which is secure against active adversaries.
+The Runtime class has been split into several parts and two new mixin
+classes provide different comparison protocols. Several coercion
+problems were fixed. The Runtime.callback method was renamed to
+Runtime.schedule_callback. VIFF was tested on Python 2.6 and some
+small problems were fixed. A new example program was added and the
+documentation was updated. Changed license to LGPL.
+
+Details:
+
+* Issue 2: Split Runtime class into smaller parts. The old Runtime
+  class has been split. If your program used the greater_than_equal
+  method, then you need to use the new Toft05Runtime class from
+  viff.comparison. If you used greater_than_equalII, then use the
+  Toft07Runtime from the same module.
+
+* Issue 3: Preprocessing. The runtime will now log the use of certain
+  methods and this log can be used to preprocess the needed data.
+
+* Issue 7: New system for unit tests. The tests now better simulate an
+  asynchronous network by randomly delaying the communication between
+  the players.
+
+* Better coercion. The comparison in Toft07Runtime can now correctly
+  deal with arguments of mixed types, e.g., comparisons like "100 < x"
+  where x is a Share.
+
+* The coercion done by the xor method was also fixed.
+
+* Issue 30: Local multiplication if one operand is a constant. The
+  runtime will now avoid an expensive resharing step when multiplying
+  shares with constants.
+
+* Issue 22: Allow sending data several times in one method. Previously
+  one could only send once to a given players in a given method since
+  all communication used the same program counter. The data is now
+  correctly buffered on the receiving side.
+
+* Python 2.6 compatibility. VIFF is now regularly tested on Python 2.6
+  via a new build slave.
+
+
+Version 0.4, released on 2008-03-12
+-----------------------------------
+
+Implemented a reliable Bracha broadcast which is secure against active
+adversaries. Shamir sharings, pseudo-random as well as standard, can
+now be asymmetric which means that only a subset of the parties
+provide input. The open protocol is now also asymmetric, in the sense
+that only a subset of the parties receive the opened result. The
+behavior of field elements in Boolean expressions has been fixed. This
+means that "GF256(0) and GF256(1)" now returns GF256(0) instead of
+GF256(1). Added a modern implementation of the classic Yao
+millionaires example from 1982 which started this field of research.
+
+Details:
+
+* Bracha broadcast, which is a reliable broadcast mechanism against
+  active adversaries, has been implemented. Secure broadcast is a
+  building block that is often used in active security scenarios.
+
+* Asymmetric Shamir sharing. It is now possible to specify that just a
+  subset of the players should provide input to a Shamir sharing. This
+  change is not backwards compatible with version 0.3 or earlier.
+  Adapting old programs is easy, simply change:
+
+    a, b, c = rt.shamir_share(Zp(input))
+
+  to
+
+    a, b, c = rt.shamir_share([1, 2, 3], Zp, input)
+
+  where Zp is a field and rt is a Runtime.
+
+* Asymmetric pseudo-random secret sharing. As the asymmetric Shamir
+  sharing above, this is not backwards compatible. This can be fixed
+  by changing statements such as e.g.
+
+    a, b, c = rt.prss_share(Zp(input))
+
+  to
+
+    a, b, c = rt.prss_share([1, 2, 3], Zp, input)
+
+  where Zp is a field and rt is a Runtime.
+
+* Asymmetric open protocol, meaning that it is now possible to specify
+  that only a subset of the players should receive the opened secret.
+  This change is not backwards compatible in cases, where threshold is
+  explicitly passed as a parameter. To correct this, name the
+  threshold parameter, e.g. change
+
+    result = rt.open(sharing, rt.threshold * 2)
+
+  to
+
+    result = rt.open(sharing, threshold=rt.threshold * 2)
+
+* Overloaded exclusive-or operations on Share instances. Given two
+  shares a and b, one can now do
+
+    c = a ^ b
+
+  to obtain the exclusive-or. This works for both GF256 shares and Zp
+  shares, though the two types must not be mixed.
+
+
+Version 0.3, released on 2007-12-27
+-----------------------------------
+
+Secure communication between the players were implemented using TLS.
+An included Makefile can generate the needed certificates. The network
+layer was completely reimplemented, this breaks compatibility with
+programs written for VIFF version 0.2 or earlier.
+
+
+Version 0.2, released on 2007-11-14
+-----------------------------------
+
+Implemented overloaded arithmetic operators, so 'w = x + y * z' now
+adds and multiplies the three shares as expected. Updated API
+documentation. Released using a Distutils setup.py script.
+
+
+Version 0.1.1, released on 2007-10-23
+-------------------------------------
+
+Added API documentation and updated the installation instructions.
+
+
+Version 0.1, released on 2007-10-16
+-----------------------------------
+
+First public release.
+
+Implements basic functionality including addition, multiplication,
+exclusive-or, and comparison of shares. Shares can be made using
+Shamir sharing or PRSS.
+
+Includes a suite of unit tests and example programs.

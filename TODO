@@ -1,0 +1,5 @@
+TODO
+====
+
+ * Automatically shut down the runtime after all data has been received
+    -> is that a twisted option???

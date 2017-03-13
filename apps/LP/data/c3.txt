@@ -1,0 +1,16 @@
+# tableau = 
+default.teau
+# modulus = 
+36893488147419104491
+# bit-length = 
+32
+# security param = 
+30
+# threshold = 
+1
+# common divisor = 
+2
+# Solution = 
+2	1	
+# Dual Solution = 
+1	19	
