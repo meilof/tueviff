@@ -4,13 +4,14 @@ from twisted.internet.defer import Deferred, _inlineCallbacks, returnValue
 
 def all_shares(obj): # could be replaced by standard Python library call?
     if type(obj) is list:
-        return reduce(lambda x,y: x+y, [all_shares(x) for x in obj])
+        return reduce(lambda x,y: y+x, [all_shares(x) for x in obj])
     return [obj]
     
 def mkstruct(ret,x):
     if type(ret) is list:
-        return [mkstruct(reti, x) for reti in reversed(ret)]
+        return [mkstruct(reti, x) for reti in ret]
     return x.pop()
+
 
 class pc_wrapper(object):
     """ Decorator inside which the program counter is forked. """
