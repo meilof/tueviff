@@ -1,4 +1,5 @@
 from viff.runtime import Share, gather_shares
+from viff.util import wrapper
 from twisted.python.failure import Failure
 from twisted.internet.defer import Deferred, _inlineCallbacks, returnValue
 
@@ -6,12 +7,11 @@ def all_shares(obj): # could be replaced by standard Python library call?
     if type(obj) is list:
         return reduce(lambda x,y: y+x, [all_shares(x) for x in obj])
     return [obj]
-    
+
 def mkstruct(ret,x):
     if type(ret) is list:
         return [mkstruct(reti, x) for reti in ret]
     return x.pop()
-
 
 class pc_wrapper(object):
     """ Decorator inside which the program counter is forked. """
@@ -48,7 +48,7 @@ class pc_wrapper(object):
         
 def reconcile(decl,givn):
     if isinstance(givn,Failure): # detect failures from the inline callback
-       givn.raiseException()
+        givn.raiseException()
     elif decl is None:
         return
     elif type(decl) is list:
@@ -57,7 +57,7 @@ def reconcile(decl,givn):
         givn.chainDeferred(decl)
     else:
         decl.callback(givn)
-        
+                
 def deepcopy(val):
     return [deepcopy(x) for x in val] if isinstance(val,list) else val
     
@@ -90,6 +90,7 @@ def viffinlinecb(f):
      - finally, returns values or Shares with returnValue.    
     """
     
+    @wrapper(f)
     def unwindGenerator(*args, **kwargs):
         gen = f(*args, **kwargs)
         rt, ret = gen.send(None)
